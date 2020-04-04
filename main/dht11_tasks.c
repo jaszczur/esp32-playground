@@ -11,15 +11,16 @@ static void dht11_task(void *args) {
   dht11_reading_t reading;
   while (1) {
     reading = DHT11_read();
+
     if (reading.status == DHT11_OK) {
-      // TODO - deal with this pointer
+      // this will copy reading onto heap and manage its memory
       app_publish_event(TEMP_HUM_READING, &reading, sizeof(dht11_reading_t),
                         portMAX_DELAY);
     } else {
       ESP_LOGW(TAG, "Got error from sensor: %d", reading.status);
     }
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    vTaskDelay(10000 / portTICK_PERIOD_MS);
   }
   vTaskDelete(NULL);
 }
