@@ -1,11 +1,16 @@
 #include "app_events.h"
+#include "dht11.h"
+#include "dht11_tasks.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "wifi_sta.h"
 
-static const char* TAG = "app_main";
+#define PIN_DHT11 GPIO_NUM_18
+
+static const char *TAG = "app_main";
 
 static void on_network_connected(void *handler_args, esp_event_base_t base,
                                  int32_t evt_id, void *event_data) {
@@ -14,6 +19,13 @@ static void on_network_connected(void *handler_args, esp_event_base_t base,
   } else {
     ESP_LOGW(TAG, "Got strange event...");
   }
+}
+
+static void on_temp_hum_reading(void *handler_args, esp_event_base_t base,
+                                int32_t evt_id, void *event_data) {
+  dht11_reading_t *reading = (dht11_reading_t *)event_data;
+  ESP_LOGI(TAG, "Got reading: temp=%d degC, hum=%d%%, status=%d", reading->temperature,
+           reading->humidity, reading->status);
 }
 
 void app_main() {
@@ -27,6 +39,15 @@ void app_main() {
   ESP_ERROR_CHECK(ret);
 
   ESP_ERROR_CHECK(app_events_init());
-  ESP_ERROR_CHECK(app_listen_for_event(NETWORK_AVAILABLE, on_network_connected, NULL));
+
+  ESP_ERROR_CHECK(
+      app_listen_for_event(NETWORK_AVAILABLE, on_network_connected, NULL));
+  ESP_ERROR_CHECK(
+      app_listen_for_event(TEMP_HUM_READING, on_temp_hum_reading, NULL));
+
+  gpio_set_direction(PIN_DHT11, GPIO_MODE_INPUT);
+  gpio_set_pull_mode(PIN_DHT11, GPIO_PULLUP_ONLY);
+  ESP_ERROR_CHECK(dht11_start_read_loop(PIN_DHT11));
+
   wifi_init_sta();
 }
