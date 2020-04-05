@@ -112,9 +112,9 @@ void wifi_init_sta() {
     ESP_LOGE(TAG, "UNEXPECTED EVENT");
   }
 
-  ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP,
-                                               &wifi_event_handler));
-  ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID,
-                                               &wifi_event_handler));
-  vEventGroupDelete(s_wifi_event_group);
+  /* ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, */
+  /*                                              &wifi_event_handler)); */
+  /* ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, */
+  /*                                              &wifi_event_handler)); */
+  /* vEventGroupDelete(s_wifi_event_group); */
 }
