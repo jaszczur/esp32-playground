@@ -21,7 +21,7 @@ esp_err_t app_events_init(void) {
       .queue_size = 5,
       .task_name = "loop_task", // task will be created
       .task_priority = uxTaskPriorityGet(NULL),
-      .task_stack_size = 2048,
+      .task_stack_size = 4096,
       .task_core_id = tskNO_AFFINITY};
 
   return esp_event_loop_create(&loop_with_task_args, &loop_with_task);
