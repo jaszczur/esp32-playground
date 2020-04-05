@@ -1,5 +1,4 @@
 #include "esp_log.h"
-#include "mqtt_client.h"
 
 #include "app_events.h"
 #include "app_mqtt.h"
@@ -9,22 +8,18 @@ static esp_mqtt_client_handle_t app_mqtt_client = NULL;
 
 static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
   esp_mqtt_client_handle_t client = event->client;
-  int msg_id;
-  // your_context_t *context = event->context;
   switch (event->event_id) {
   case MQTT_EVENT_CONNECTED:
     ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-    app_publish_event(MQTT_CONNECTED, NULL, 0, portMAX_DELAY);
+    app_publish_event(MQTT_CONNECTED, NULL, 0, 1000 / portTICK_PERIOD_MS);
     break;
   case MQTT_EVENT_DISCONNECTED:
-    ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED - reconnect");
-    app_publish_event(MQTT_DISCONNECTED, NULL, 0, portMAX_DELAY);
-    esp_err_t err = esp_mqtt_client_reconnect(client);
-    if (err == ESP_OK) {
-      ESP_LOGI(TAG, "Reconnected");
-    } else {
-      ESP_LOGW(TAG, "Reconnection failed: %s", esp_err_to_name(err));
-    }
+    ESP_LOGW(TAG, "MQTT_EVENT_DISCONNECTED");
+    app_publish_event(MQTT_DISCONNECTED, NULL, 0, 1000 / portTICK_PERIOD_MS);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    ESP_LOGI(TAG, "Reconnecting");
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_mqtt_client_reconnect(client));
     break;
 
   case MQTT_EVENT_SUBSCRIBED:
@@ -43,6 +38,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_ERROR:
     ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+    ESP_LOGI(TAG, "Error type: %d", event->error_handle->error_type);
     break;
   default:
     ESP_LOGI(TAG, "Other event id:%d", event->event_id);
@@ -62,20 +58,18 @@ esp_err_t app_mqtt_publish(app_mqtt_topic_t topic, const char *data, int len,
   if (app_mqtt_client == NULL) {
     return ESP_ERR_INVALID_STATE;
   }
-  return esp_mqtt_client_publish(app_mqtt_client, app_topic_names[topic], data,
-                                 len, qos, retain);
+  int msg_id = esp_mqtt_client_publish(app_mqtt_client, app_topic_names[topic],
+                                       data, len, qos, retain);
+  return (msg_id < 0) ? ESP_FAIL : ESP_OK;
 }
 
-esp_err_t app_mqtt_init() {
+esp_err_t app_mqtt_init(const esp_mqtt_client_config_t *mqtt_cfg) {
   app_topic_names[TOPIC_TEMPERATURE] = "sensors/esp32-1/temperature";
   app_topic_names[TOPIC_HUMIDITY] = "sensors/esp32-1/humidity";
 
   esp_err_t err;
 
-  const esp_mqtt_client_config_t mqtt_cfg = {
-      .uri = "mqtt://192.168.1.4",
-  };
-  esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+  esp_mqtt_client_handle_t client = esp_mqtt_client_init(mqtt_cfg);
 
   err = esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID,
                                        mqtt_event_handler, client);

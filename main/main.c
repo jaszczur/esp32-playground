@@ -10,6 +10,7 @@
 #include "wifi_sta.h"
 
 #define PIN_DHT11 GPIO_NUM_18
+#define APP_MQTT_URL CONFIG_ESP_MQTT_URL
 
 static const char *TAG = "app_main";
 
@@ -17,7 +18,8 @@ static void on_network_connected(void *handler_args, esp_event_base_t base,
                                  int32_t evt_id, void *event_data) {
   if (base == APP_EVENTS && evt_id == NETWORK_AVAILABLE) {
     ESP_LOGI(TAG, "Network is available");
-    app_mqtt_init();
+    esp_mqtt_client_config_t mqtt_cfg = {.uri = APP_MQTT_URL,};
+    app_mqtt_init(&mqtt_cfg);
   } else {
     ESP_LOGW(TAG, "Got strange event...");
   }
@@ -33,10 +35,10 @@ static void on_temp_hum_reading(void *handler_args, esp_event_base_t base,
   char buff[buff_size];
 
   snprintf(buff, buff_size, "%d", reading->temperature);
-  ESP_ERROR_CHECK_WITHOUT_ABORT(app_mqtt_publish(TOPIC_TEMPERATURE, buff, 0, 0, 0));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(app_mqtt_publish(TOPIC_TEMPERATURE, buff, 0, 1, 0));
 
   snprintf(buff, buff_size, "%d", reading->humidity);
-  ESP_ERROR_CHECK_WITHOUT_ABORT(app_mqtt_publish(TOPIC_HUMIDITY, buff, 0, 0, 0));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(app_mqtt_publish(TOPIC_HUMIDITY, buff, 0, 1, 0));
 }
 
 void app_main() {
