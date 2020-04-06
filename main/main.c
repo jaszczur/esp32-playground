@@ -6,6 +6,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "wifi_sta.h"
@@ -27,8 +28,14 @@ static void on_network_connected(void *handler_args, esp_event_base_t base,
 
 static void on_mqtt_disconnected(void *handler_args, esp_event_base_t base,
                                  int32_t evt_id, void *event_data) {
-  ESP_LOGI(TAG, "Disconnected from MQTT. Reconnecting to WiFi as of possible tcp/wifi stack bug");
-  wifi_reconnect();
+  ESP_LOGI(
+      TAG,
+      "Disconnected from MQTT. Rebooting as of possible tcp/wifi stack bug");
+  /* wifi_reconnect(); */
+  esp_restart();
+  /* vTaskDelay(1000 / portTICK_PERIOD_MS); */
+  /* ESP_LOGI(TAG, "mqtt connect"); */
+  /* app_mqtt_connect(); */
 }
 
 static void on_temp_hum_reading(void *handler_args, esp_event_base_t base,
