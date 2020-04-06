@@ -2,7 +2,6 @@
 #define APP_EVENTS_H_
 
 #include "esp_event.h"
-#include "esp_event_loop.h"
 #include "esp_timer.h"
 
 // Declarations for the event source
@@ -12,10 +11,10 @@
 ESP_EVENT_DECLARE_BASE(APP_EVENTS); // declaration of the task events family
 
 typedef enum {
-              NETWORK_AVAILABLE, // raised when nework is connected
-              TEMP_HUM_READING,
-              MQTT_CONNECTED,
-              MQTT_DISCONNECTED
+              APP_NETWORK_AVAILABLE = 0, // raised when nework is connected
+              APP_TEMP_HUM_READING  = 1,
+              APP_MQTT_CONNECTED    = 2,
+              APP_MQTT_DISCONNECTED = 3
 } app_evt_t;
 
 esp_err_t app_events_init(void);
