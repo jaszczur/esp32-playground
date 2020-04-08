@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "time.h"
 
 static const char *TAG = "dht11-task";
 
@@ -30,7 +31,6 @@ esp_err_t dht11_start_read_loop(gpio_num_t pin) {
   gpio_set_direction(pin, GPIO_MODE_INPUT);
   gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
   DHT11_init(pin);
-  xTaskCreate(dht11_task, "dht11_task", 2048, NULL, uxTaskPriorityGet(NULL),
-              NULL);
+  xTaskCreate(dht11_task, TAG, 2048, NULL, tskIDLE_PRIORITY + 3, NULL);
   return ESP_OK;
 }

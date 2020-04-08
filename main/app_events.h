@@ -13,8 +13,7 @@ ESP_EVENT_DECLARE_BASE(APP_EVENTS); // declaration of the task events family
 typedef enum {
               APP_NETWORK_AVAILABLE = 0, // raised when nework is connected
               APP_TEMP_HUM_READING  = 1,
-              APP_MQTT_CONNECTED    = 2,
-              APP_MQTT_DISCONNECTED = 3
+              APP_MESSAGE_PUBLISHED = 2,
 } app_evt_t;
 
 esp_err_t app_events_init(void);

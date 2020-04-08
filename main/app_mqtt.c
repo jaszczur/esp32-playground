@@ -15,12 +15,10 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_CONNECTED:
     ESP_LOGI(TAG, "Connected to MQTT broker. Client %#08x",
              (unsigned int)app_mqtt_client);
-    app_publish_event(APP_MQTT_CONNECTED, NULL, 0, 1000 / portTICK_PERIOD_MS);
     break;
 
   case MQTT_EVENT_DISCONNECTED:
     ESP_LOGW(TAG, "Disconnected from MQTT broker");
-    app_publish_event(APP_MQTT_DISCONNECTED, NULL, 0, portMAX_DELAY);
     break;
 
   case MQTT_EVENT_SUBSCRIBED:
@@ -31,6 +29,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_PUBLISHED:
     ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+    app_publish_event(APP_MESSAGE_PUBLISHED, &event->msg_id, sizeof(event->msg_id), portMAX_DELAY);
     break;
   case MQTT_EVENT_DATA:
     ESP_LOGI(TAG, "MQTT_EVENT_DATA");
@@ -68,10 +67,10 @@ esp_err_t app_mqtt_connect(void) {
   esp_err_t err = esp_mqtt_client_start(app_mqtt_client);
   if (err != ESP_OK) {
     // Maybe we should just reconnect?
-    ESP_LOGI(TAG, "Start failed with %s", esp_err_to_name(err));
-    err = esp_mqtt_client_reconnect(app_mqtt_client);
+    ESP_LOGI(TAG, "Start failed with %s. We are already connected", esp_err_to_name(err));
+    /* err = esp_mqtt_client_reconnect(app_mqtt_client); */
   }
-  return err;
+  return ESP_OK;
 }
 
 esp_err_t app_mqtt_init(const esp_mqtt_client_config_t *mqtt_cfg) {
