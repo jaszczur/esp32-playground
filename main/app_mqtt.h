@@ -9,7 +9,9 @@ typedef enum {
   TOPIC_HUMIDITY,
   TOPIC_MOISTURE,
   TOPIC_LUMINESCENCE,
-  TOPIC_COUNT
+  TOPIC_LIGHT_SET,
+  TOPIC_LIGHT_GET,
+  TOPIC_COUNT,
 } app_mqtt_topic_t;
 
 const char *app_topic_names[TOPIC_COUNT];

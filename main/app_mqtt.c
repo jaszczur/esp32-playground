@@ -5,6 +5,7 @@
 #include "app_mqtt.h"
 #include "freertos/portmacro.h"
 #include "mqtt_client.h"
+#include "relay.h"
 
 static const char *TAG = "app_mqtt";
 static esp_mqtt_client_handle_t app_mqtt_client = NULL;
@@ -15,6 +16,10 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_CONNECTED:
     ESP_LOGI(TAG, "Connected to MQTT broker. Client %#08x",
              (unsigned int)app_mqtt_client);
+
+    // TODO Un-hardcode this
+    esp_mqtt_client_subscribe(app_mqtt_client, app_topic_names[TOPIC_LIGHT_SET],
+                              2);
     break;
 
   case MQTT_EVENT_DISCONNECTED:
@@ -35,6 +40,12 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
     ESP_LOGI(TAG, "MQTT_EVENT_DATA");
     printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
     printf("DATA=%.*s\r\n", event->data_len, event->data);
+
+    // TODO: Un-hardcode this
+    if(strncmp(app_topic_names[TOPIC_LIGHT_SET], event->topic, event->topic_len) == 0 && event->data_len > 0) {
+      app_relay_turn(0, event->data[0] == '0' ? false : true);
+      app_mqtt_publish(TOPIC_LIGHT_GET, event->data, 1, 1, 0);
+    }
     break;
   case MQTT_EVENT_ERROR:
     ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -46,6 +57,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
   }
   return ESP_OK;
 }
+
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
                                int32_t event_id, void *event_data) {
   ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base,
@@ -79,6 +91,8 @@ esp_err_t app_mqtt_init(const esp_mqtt_client_config_t *mqtt_cfg) {
   app_topic_names[TOPIC_HUMIDITY] = "sensors/esp32-1/humidity";
   app_topic_names[TOPIC_MOISTURE] = "sensors/esp32-1/moisture";
   app_topic_names[TOPIC_LUMINESCENCE] = "sensors/esp32-1/luminescence";
+  app_topic_names[TOPIC_LIGHT_SET] = "sensors/esp32-1/light-set";
+  app_topic_names[TOPIC_LIGHT_GET] = "sensors/esp32-1/light";
 
   app_mqtt_client = esp_mqtt_client_init(mqtt_cfg);
 

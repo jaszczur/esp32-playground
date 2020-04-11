@@ -25,6 +25,8 @@
 #define PIN_STATUS_WARN GPIO_NUM_33
 #define APP_MQTT_URL CONFIG_ESP_MQTT_URL
 
+#define RELAY_LIGHT 0
+
 static const char *TAG = "app_main";
 
 // TODO: atomic access and extract to file
@@ -69,6 +71,7 @@ static void on_sensors_reading(void *handler_args, esp_event_base_t base,
   publish_reading("moisture", TOPIC_MOISTURE, reading->moisture, buff, buff_size);
   publish_reading("luminescence", TOPIC_LUMINESCENCE, reading->luminescence, buff,
                   buff_size);
+  publish_reading("light", TOPIC_LIGHT_GET, app_relay_turnedOn(RELAY_LIGHT) ? 1 : 0, buff, buff_size);
 
   bool status_warn = reading->moisture < 2000;
   gpio_set_level(PIN_STATUS_WARN, status_warn);
