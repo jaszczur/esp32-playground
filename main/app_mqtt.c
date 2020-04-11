@@ -77,6 +77,8 @@ esp_err_t app_mqtt_init(const esp_mqtt_client_config_t *mqtt_cfg) {
   ESP_LOGI(TAG, "Initializing MQTT connection");
   app_topic_names[TOPIC_TEMPERATURE] = "sensors/esp32-1/temperature";
   app_topic_names[TOPIC_HUMIDITY] = "sensors/esp32-1/humidity";
+  app_topic_names[TOPIC_MOISTURE] = "sensors/esp32-1/moisture";
+  app_topic_names[TOPIC_LUMINESCENCE] = "sensors/esp32-1/luminescence";
 
   app_mqtt_client = esp_mqtt_client_init(mqtt_cfg);
 
