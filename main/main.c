@@ -71,7 +71,7 @@ static void on_sensors_reading(void *handler_args, esp_event_base_t base,
   publish_reading("moisture", TOPIC_MOISTURE, reading->moisture, buff, buff_size);
   publish_reading("luminescence", TOPIC_LUMINESCENCE, reading->luminescence, buff,
                   buff_size);
-  publish_reading("light", TOPIC_LIGHT_GET, app_relay_turnedOn(RELAY_LIGHT) ? 1 : 0, buff, buff_size);
+  publish_reading("light", TOPIC_LIGHT_GET, app_relay_turnedOn(RELAY_LIGHT), buff, buff_size);
 
   bool status_warn = reading->moisture < 2000;
   gpio_set_level(PIN_STATUS_WARN, status_warn);
@@ -131,7 +131,7 @@ void app_main(void) {
 
   // Initialize relay
   gpio_num_t relay_pins[] = {PIN_RELAY_LIGHTS};
-  bool initial_relay_status[] = {true};
+  int initial_relay_status[] = {1};
   app_relay_config_t app_relay_configuration =
     {
      .num_relays = 1,
@@ -160,7 +160,9 @@ void app_main(void) {
   // Initialize WiFi Station
   wifi_init_sta();
 
-  // Configure and start SNTP time sync
+  // Configure timezone and start SNTP time sync
+  setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
+  tzset();
   sntp_setoperatingmode(SNTP_OPMODE_POLL);
   sntp_setservername(0, "pool.ntp.org");
   sntp_init();

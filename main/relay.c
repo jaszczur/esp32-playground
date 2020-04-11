@@ -13,14 +13,14 @@ void app_relay_init(app_relay_config_t *config) {
   memcpy(relay_state.relay_gpio_mapping, config->relay_gpio_mapping,
          relay_state.num_relays * sizeof(gpio_num_t));
 
-  relay_state.status = calloc(relay_state.num_relays, sizeof(bool));
-  memcpy(relay_state.status, config->relay_gpio_mapping,
-         relay_state.num_relays * sizeof(gpio_num_t));
+  relay_state.status = calloc(relay_state.num_relays, sizeof(int));
+  memcpy(relay_state.status, config->status,
+         relay_state.num_relays * sizeof(int));
 
   for(int id = 0; id<relay_state.num_relays; ++id) {
     gpio_num_t pin = relay_state.relay_gpio_mapping[id];
     gpio_set_direction(pin, GPIO_MODE_OUTPUT);
-    gpio_set_level(pin, relay_state.status[id] ? 1 : 0);
+    gpio_set_level(pin, relay_state.status[id]);
   }
 }
 
@@ -34,18 +34,18 @@ void app_relay_clean() {
   free(relay_state.status);
 }
 
-void app_relay_turn(int id, bool turnedOn) {
+void app_relay_turn(int id, int turnedOn) {
   if (relay_state.num_relays == 0 || id >= relay_state.num_relays || id < 0) {
     return;
   }
 
   relay_state.status[id] = turnedOn;
-  gpio_set_level(relay_state.relay_gpio_mapping[id], turnedOn ? 1 : 0);
+  gpio_set_level(relay_state.relay_gpio_mapping[id], turnedOn);
 }
 
-bool app_relay_turnedOn(int id) {
+int app_relay_turnedOn(int id) {
   if (relay_state.num_relays == 0 || id >= relay_state.num_relays || id < 0) {
-    return false;
+    return -1;
   }
   return relay_state.status[id];
 }

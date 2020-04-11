@@ -8,13 +8,13 @@
 typedef struct app_relay_config {
   int num_relays;
   gpio_num_t *relay_gpio_mapping;
-  bool *status;
+  int *status;
 } app_relay_config_t;
 
 void app_relay_init(app_relay_config_t *config);
 void app_relay_clean();
-void app_relay_turn(int id, bool turnedOn);
-bool app_relay_turnedOn(int id);
+void app_relay_turn(int id, int turnedOn);
+int app_relay_turnedOn(int id);
 
 
 #endif /* RELAY_H */
