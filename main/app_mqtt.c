@@ -43,8 +43,8 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 
     // TODO: Un-hardcode this
     if(strncmp(app_topic_names[TOPIC_LIGHT_SET], event->topic, event->topic_len) == 0 && event->data_len > 0) {
-      app_relay_turn(0, event->data[0] == '0' ? 0 : 1);
-      app_mqtt_publish(TOPIC_LIGHT_GET, event->data, 1, 1, 0);
+      int relay_conf = event->data[0] - '0';
+      app_relay_set(0, relay_conf);
     }
     break;
   case MQTT_EVENT_ERROR:
