@@ -108,6 +108,9 @@ void app_main(void) {
   // Initialize WiFi Station
   wifi_init_sta();
 
+  // Start core loop
+  app_core_loop_start();
+
   // Configure timezone and start SNTP time sync
   setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
   tzset();
@@ -127,9 +130,6 @@ void app_main(void) {
       .nvs_handle = app_nvs_handle,
   };
   app_relay_init(&app_relay_configuration);
-
-  // Start core loop
-  app_core_loop_start();
 
   // Init HTTP Server
   ESP_ERROR_CHECK(app_httpd_init("/www"));
