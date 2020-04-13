@@ -1,7 +1,7 @@
 build/
 .clangd/
 sdkconfig
-sdkconfig.*
+sdkconfig.old
 # Created by https://www.gitignore.io/api/c,c++,cmake,emacs,ninja
 # Edit at https://www.gitignore.io/?templates=c,c++,cmake,emacs,ninja
 

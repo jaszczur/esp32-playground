@@ -3,7 +3,9 @@ idf_component_register(
   "app_events.c"
   "wifi_sta.c"
   "sensor_tasks.c"
-  "app_mqtt.c"
+  "http_server.c"
+  "http_controllers.c"
+  "core.c"
   "moisture.c"
   "luminescence.c"
   "relay.c"
@@ -12,8 +14,17 @@ idf_component_register(
   REQUIRES
   dht11
   nvs_flash
-  mqtt
-  lwip
+  spiffs
+  esp_http_server
+  json
 
   INCLUDE_DIRS
   ".")
+
+set(WEB_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../frontend")
+
+if(EXISTS ${WEB_SRC_DIR}/build)
+  spiffs_create_partition_image(www ${WEB_SRC_DIR}/build FLASH_IN_PROJECT)
+else()
+  message(FATAL_ERROR "${WEB_SRC_DIR}/build doesn't exit. Please run 'yarn build' in ${WEB_SRC_DIR}")
+endif()

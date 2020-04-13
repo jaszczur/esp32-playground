@@ -11,7 +11,7 @@
 #define RELAY_NVS_KEY_SIZE 12
 
 static const char *TAG = "app_relay";
-static app_relay_config_t relay_conf = {0, NULL, NULL, NULL, 8, 20};
+static app_relay_config_t relay_conf = {0, NULL, NULL, -1, 8, 20};
 static bool* relay_status = NULL;
 
 static void relay_nvs_key(char *out, int id) {
@@ -102,7 +102,7 @@ void app_relay_set(int id, int config) {
   }
 
   relay_conf.config[id] = config;
-  gpio_set_level(relay_conf.relay_gpio_mapping[id], config);
+  ESP_LOGI(TAG, "Set relay #%d config to %d", id, config);
 }
 
 int app_relay_get(int id) {

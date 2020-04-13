@@ -19,6 +19,7 @@ typedef struct sensors_reading {
   int luminescence;
 } sensors_reading_t;
 
-esp_err_t sensors_start_loop(sensors_conf_t *conf);
+esp_err_t sensors_init(sensors_conf_t *conf);
+void sensors_read(sensors_reading_t *reading);
 
 #endif

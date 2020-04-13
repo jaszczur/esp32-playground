@@ -1,16 +1,20 @@
+#include "app_config.h"
 #include "app_events.h"
-#include "app_mqtt.h"
+#include "core.h"
 #include "dht11.h"
 #include "driver/adc_common.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_sntp.h"
+#include "esp_spiffs.h"
 #include "esp_system.h"
+#include "esp_vfs_semihost.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
 #include "freertos/task.h"
 #include "hal/gpio_types.h"
+#include "http_server.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "relay.h"
@@ -19,94 +23,46 @@
 #include "time.h"
 #include "wifi_sta.h"
 
-#define PIN_DHT11 GPIO_NUM_5
-#define PIN_MOISTURE ADC1_CHANNEL_7
-#define PIN_LUMINESCENCE ADC1_CHANNEL_0
-#define PIN_RELAY_LIGHTS GPIO_NUM_32
-#define PIN_STATUS_WARN GPIO_NUM_33
-#define APP_MQTT_URL CONFIG_ESP_MQTT_URL
-
-#define RELAY_LIGHT 0
-
 static const char *TAG = "app_main";
 static nvs_handle_t app_nvs_handle;
-
-// TODO: atomic access and extract to file
-static time_t last_reading_time;
-static time_t last_publish_time;
 
 static void on_network_connected(void *handler_args, esp_event_base_t base,
                                  int32_t evt_id, void *event_data) {
   if (base == APP_EVENTS && evt_id == APP_NETWORK_AVAILABLE) {
     ESP_LOGI(TAG, "Network is available. Connecting to MQTT broker");
     sntp_restart();
-    ESP_ERROR_CHECK(app_mqtt_connect());
+    app_httpd_start();
   } else {
     ESP_LOGW(TAG, "Got strange event... %d", evt_id);
   }
 }
+esp_err_t init_fs(void) {
+  esp_vfs_spiffs_conf_t conf = {.base_path = "/www",
+                                .partition_label = NULL,
+                                .max_files = 5,
+                                .format_if_mount_failed = false};
+  esp_err_t ret = esp_vfs_spiffs_register(&conf);
 
-static void publish_reading(const char *name, app_mqtt_topic_t topic, int value, char *buff, int buff_size) {
-  snprintf(buff, buff_size, "%d", value);
-  esp_err_t err = app_mqtt_publish(topic, buff, 0, 1, 1);
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Could not send %s reading", name);
-  }
-}
-
-static void on_sensors_reading(void *handler_args, esp_event_base_t base,
-                               int32_t evt_id, void *event_data) {
-
-  ESP_LOGI(TAG, "Free heap size %d kB", xPortGetFreeHeapSize() / 1024);
-  app_relay_update();
-
-  sensors_reading_t *reading = (sensors_reading_t *)event_data;
-  ESP_LOGI(TAG, "Got reading: temp=%d degC, hum=%d%%, moist=%d, luminescence=%d",
-           reading->temperature, reading->humidity, reading->moisture, reading->luminescence);
-
-  static const int buff_size = 8;
-  char buff[buff_size];
-
-  time(&last_reading_time);
-
-  publish_reading("temperature", TOPIC_TEMPERATURE, reading->temperature, buff, buff_size);
-  publish_reading("humidity", TOPIC_HUMIDITY, reading->humidity, buff, buff_size);
-  publish_reading("moisture", TOPIC_MOISTURE, reading->moisture, buff, buff_size);
-  publish_reading("luminescence", TOPIC_LUMINESCENCE, reading->luminescence, buff,
-                  buff_size);
-  publish_reading("light", TOPIC_LIGHT_GET, app_relay_turned_on(RELAY_LIGHT), buff, buff_size);
-
-  bool status_warn = reading->moisture < 2000;
-  gpio_set_level(PIN_STATUS_WARN, status_warn);
-}
-
-static void on_message_published(void *handler_args, esp_event_base_t base,
-                                 int32_t evt_id, void *event_data) {
-  time(&last_publish_time);
-}
-
-static void mqtt_watchdog_task(void *task) {
-  time_t time_diff;
-  ESP_LOGI(TAG, "Starting message sending watchdog");
-
-  while (true) {
-    time_diff = labs(last_reading_time - last_publish_time);
-    if (time_diff > 3600) {
-      ESP_LOGI(TAG, "Invalid time - skiping check");
+  if (ret != ESP_OK) {
+    if (ret == ESP_FAIL) {
+      ESP_LOGE(TAG, "Failed to mount or format filesystem");
+    } else if (ret == ESP_ERR_NOT_FOUND) {
+      ESP_LOGE(TAG, "Failed to find SPIFFS partition");
     } else {
-    ESP_LOGI(TAG, "Current diff time diff: %ld - %ld = %ld s",
-             last_reading_time, last_publish_time, time_diff);
-    if (time_diff > 30) {
-      ESP_LOGW(TAG, "Not sending messages for %ld seconds", time_diff);
+      ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
     }
-    if (time_diff > 180) {
-      ESP_LOGW(TAG, "Not sending messages for too long - restarting");
-      esp_restart();
-    }
-    }
-
-    vTaskDelay(12000 / portTICK_PERIOD_MS);
+    return ESP_FAIL;
   }
+
+  size_t total = 0, used = 0;
+  ret = esp_spiffs_info(NULL, &total, &used);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)",
+             esp_err_to_name(ret));
+  } else {
+    ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+  }
+  return ESP_OK;
 }
 
 void app_main(void) {
@@ -126,6 +82,9 @@ void app_main(void) {
   ESP_ERROR_CHECK(ret);
   ESP_ERROR_CHECK(nvs_open("sensapp", NVS_READWRITE, &app_nvs_handle));
 
+  // Initialize web resources
+  init_fs();
+
   // Initialize application event loop
   ESP_ERROR_CHECK(app_events_init());
 
@@ -136,10 +95,6 @@ void app_main(void) {
   // Register application event handlers
   ESP_ERROR_CHECK(
       app_listen_for_event(APP_NETWORK_AVAILABLE, on_network_connected, NULL));
-  ESP_ERROR_CHECK(
-      app_listen_for_event(APP_TEMP_HUM_READING, on_sensors_reading, NULL));
-  ESP_ERROR_CHECK(
-      app_listen_for_event(APP_MESSAGE_PUBLISHED, on_message_published, NULL));
 
   // Setup temperature and humidity sensor
   adc1_config_width(ADC_WIDTH_BIT_12);
@@ -148,7 +103,7 @@ void app_main(void) {
       .moisture_pin = PIN_MOISTURE,
       .luminescence_pin = PIN_LUMINESCENCE,
   };
-  ESP_ERROR_CHECK(sensors_start_loop(&sensors_configuration));
+  ESP_ERROR_CHECK(sensors_init(&sensors_configuration));
 
   // Initialize WiFi Station
   wifi_init_sta();
@@ -173,13 +128,9 @@ void app_main(void) {
   };
   app_relay_init(&app_relay_configuration);
 
-  // Start MQTT client
-  static esp_mqtt_client_config_t mqtt_cfg = {
-      .uri = APP_MQTT_URL,
-      .disable_auto_reconnect = false,
-  };
-  app_mqtt_init(&mqtt_cfg);
+  // Start core loop
+  app_core_loop_start();
 
-  xTaskCreate(mqtt_watchdog_task, "app-mqtt-watchdog", 2048, NULL,
-              tskIDLE_PRIORITY, NULL);
+  // Init HTTP Server
+  ESP_ERROR_CHECK(app_httpd_init("/www"));
 }
