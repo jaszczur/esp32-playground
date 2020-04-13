@@ -9,8 +9,6 @@
 #include <fcntl.h>
 #include <string.h>
 
-static const char *REST_TAG = "esp-rest";
-
 #define REST_CHECK(a, str, goto_tag, ...)                                      \
   do {                                                                         \
     if (!(a)) {                                                                \
@@ -134,6 +132,7 @@ esp_err_t app_httpd_init(const char *resources_path) {
     };
     httpd_register_uri_handler(server, &common_get_uri);
 
+    ESP_LOGI(REST_TAG, "HTTPD started");
     return ESP_OK;
 err_start:
     free(rest_context);

@@ -3,7 +3,9 @@
 #include "cJSON.h"
 #include "esp_http_server.h"
 #include "relay.h"
-#include "sensor_tasks.h"
+#include "sensors.h"
+#include "esp_log.h"
+#include <time.h>
 
 esp_err_t app_http_get_readings(httpd_req_t *req) {
   httpd_resp_set_type(req, "application/json");
@@ -11,18 +13,23 @@ esp_err_t app_http_get_readings(httpd_req_t *req) {
 
   sensors_reading_t reading;
   sensors_read(&reading);
+  time_t rawtime;
+  time(&rawtime);
 
+  cJSON_AddNumberToObject(root, "ts", rawtime);
   cJSON_AddNumberToObject(root, "temperature", reading.temperature);
   cJSON_AddNumberToObject(root, "humidity", reading.humidity);
   cJSON_AddNumberToObject(root, "luminescence", reading.luminescence);
   cJSON_AddNumberToObject(root, "moisture", reading.moisture);
   cJSON_AddNumberToObject(root, "light", app_relay_turned_on(RELAY_LIGHT));
+  cJSON_AddNumberToObject(root, "light-conf", app_relay_get(RELAY_LIGHT));
 
   const char *json_as_string = cJSON_Print(root);
   httpd_resp_sendstr(req, json_as_string);
   free((void *)json_as_string);
   cJSON_Delete(root);
 
+  ESP_LOGI(REST_TAG, "Sent sensor data");
   return ESP_OK;
 }
 
@@ -55,5 +62,7 @@ esp_err_t app_http_post_light(httpd_req_t *req) {
     app_relay_update();
 
     httpd_resp_sendstr(req, "{}");
+    ESP_LOGI(REST_TAG, "Changed light state");
+
     return ESP_OK;
 }

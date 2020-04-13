@@ -18,9 +18,4 @@ menu "Jaszczur Playground Configuration"
         help
             Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
 
-    config ESP_MQTT_URL
-        string "MQTT broker url"
-        default "mqtt://192.168.1.2"
-        help
-            The MQTT broker URL to which send the readings
 endmenu

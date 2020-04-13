@@ -1,10 +1,10 @@
 #include "app_config.h"
-#include "app_events.h"
 #include "core.h"
 #include "dht11.h"
 #include "driver/adc_common.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
+#include "esp_event.h"
 #include "esp_log.h"
 #include "esp_sntp.h"
 #include "esp_spiffs.h"
@@ -18,7 +18,7 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "relay.h"
-#include "sensor_tasks.h"
+#include "sensors.h"
 #include "sntp.h"
 #include "time.h"
 #include "wifi_sta.h"
@@ -26,16 +26,6 @@
 static const char *TAG = "app_main";
 static nvs_handle_t app_nvs_handle;
 
-static void on_network_connected(void *handler_args, esp_event_base_t base,
-                                 int32_t evt_id, void *event_data) {
-  if (base == APP_EVENTS && evt_id == APP_NETWORK_AVAILABLE) {
-    ESP_LOGI(TAG, "Network is available. Connecting to MQTT broker");
-    sntp_restart();
-    app_httpd_start();
-  } else {
-    ESP_LOGW(TAG, "Got strange event... %d", evt_id);
-  }
-}
 esp_err_t init_fs(void) {
   esp_vfs_spiffs_conf_t conf = {.base_path = "/www",
                                 .partition_label = NULL,
@@ -66,13 +56,7 @@ esp_err_t init_fs(void) {
 }
 
 void app_main(void) {
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
-
   // Initialize NVS
-  /*
-  ESP_ERROR_CHECK(nvs_flash_erase());
-  ESP_ERROR_CHECK(nvs_flash_init());
-  */
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
       ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -82,19 +66,15 @@ void app_main(void) {
   ESP_ERROR_CHECK(ret);
   ESP_ERROR_CHECK(nvs_open("sensapp", NVS_READWRITE, &app_nvs_handle));
 
-  // Initialize web resources
-  init_fs();
+  // Initialize WiFi Station
+  wifi_init_sta();
 
-  // Initialize application event loop
-  ESP_ERROR_CHECK(app_events_init());
-
-  // Initialize UI pins
-  gpio_set_direction(PIN_STATUS_WARN, GPIO_MODE_OUTPUT);
-  gpio_set_level(PIN_STATUS_WARN, 1);
-
-  // Register application event handlers
-  ESP_ERROR_CHECK(
-      app_listen_for_event(APP_NETWORK_AVAILABLE, on_network_connected, NULL));
+  // Configure timezone and start SNTP time sync
+  setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
+  tzset();
+  sntp_setoperatingmode(SNTP_OPMODE_POLL);
+  sntp_setservername(0, "pool.ntp.org");
+  sntp_init();
 
   // Setup temperature and humidity sensor
   adc1_config_width(ADC_WIDTH_BIT_12);
@@ -105,18 +85,8 @@ void app_main(void) {
   };
   ESP_ERROR_CHECK(sensors_init(&sensors_configuration));
 
-  // Initialize WiFi Station
-  wifi_init_sta();
-
   // Start core loop
-  app_core_loop_start();
-
-  // Configure timezone and start SNTP time sync
-  setenv("TZ", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
-  tzset();
-  sntp_setoperatingmode(SNTP_OPMODE_POLL);
-  sntp_setservername(0, "pool.ntp.org");
-  sntp_init();
+  ESP_ERROR_CHECK(app_core_loop_start());
 
   // Initialize relay
   gpio_num_t relay_pins[] = {PIN_RELAY_LIGHTS};
@@ -130,6 +100,9 @@ void app_main(void) {
       .nvs_handle = app_nvs_handle,
   };
   app_relay_init(&app_relay_configuration);
+
+  // Initialize web resources
+  init_fs();
 
   // Init HTTP Server
   ESP_ERROR_CHECK(app_httpd_init("/www"));

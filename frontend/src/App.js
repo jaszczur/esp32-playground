@@ -3,8 +3,10 @@ import clsx from 'clsx';
 import Container from '@material-ui/core/Container';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
+import Button from '@material-ui/core/Button';
 import { makeStyles, createStyles } from '@material-ui/core/styles';
 import axios from 'axios';
+import WbIncandescentIcon from '@material-ui/icons/WbIncandescent';
 
 
 const useStyles = makeStyles((theme) => createStyles({
@@ -22,10 +24,16 @@ const useStyles = makeStyles((theme) => createStyles({
     display: 'flex',
     overflow: 'auto',
     flexDirection: 'column',
+    background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)'
   },
   fixedHeight: {
     height: 240,
   },
+  buttons: {
+    '& > *': {
+      margin: theme.spacing(1),
+    },
+  }
 }));
 
 const updateSensorReadings = (cb) =>
@@ -33,6 +41,13 @@ const updateSensorReadings = (cb) =>
     .then(res => {
       cb(res.data);
     })
+    .catch(e => {
+      console.log(e);
+    });
+
+const setLight = (status) =>
+  axios.post('/api/v1/light', { status })
+    .then(res => console.log(res.data))
     .catch(e => {
       console.log(e);
     });
@@ -76,7 +91,13 @@ function App() {
           </Grid>
           <Grid item xs={12} sm={6} lg={4}>
             <Paper className={fixedHeightPaper}>
+              <WbIncandescentIcon />
               Light: {sensors.light}
+              <div className={classes.buttons}>
+                <Button variant="contained" onClick={() => setLight(0)}>off</Button>
+                <Button variant="contained" onClick={() => setLight(1)}>on</Button>
+                <Button variant="contained" onClick={() => setLight(2)}>schedule</Button>
+              </div>
             </Paper>
           </Grid>
         </Grid>

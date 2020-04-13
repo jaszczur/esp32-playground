@@ -1,5 +1,5 @@
-#ifndef DHT11_TASKS_H_
-#define DHT11_TASKS_H_
+#ifndef SENSORS_H_
+#define SENSORS_H_
 
 #include "driver/adc.h"
 #include "driver/adc_common.h"

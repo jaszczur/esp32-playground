@@ -1,8 +1,7 @@
 idf_component_register(
   SRCS
-  "app_events.c"
   "wifi_sta.c"
-  "sensor_tasks.c"
+  "sensors.c"
   "http_server.c"
   "http_controllers.c"
   "core.c"

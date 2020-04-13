@@ -1,5 +1,4 @@
-#include "sensor_tasks.h"
-#include "app_events.h"
+#include "sensors.h"
 #include "dht11.h"
 #include "esp_err.h"
 #include "esp_log.h"
