@@ -5,6 +5,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "relay.h"
+#include "wifi_sta.h"
 
 static const char *TAG = "app_core";
 
@@ -13,6 +14,8 @@ void core_loop(void *params) {
   while (true) {
     // Update lights
     app_relay_update();
+
+    wifi_check_connection();
 
     vTaskDelay(10000 / portTICK_PERIOD_MS);
   }

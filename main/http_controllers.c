@@ -24,7 +24,7 @@ esp_err_t app_http_get_readings(httpd_req_t *req) {
   cJSON_AddNumberToObject(root, "light", app_relay_turned_on(RELAY_LIGHT));
   cJSON_AddNumberToObject(root, "light-conf", app_relay_get(RELAY_LIGHT));
 
-  const char *json_as_string = cJSON_Print(root);
+  const char *json_as_string = cJSON_PrintUnformatted(root);
   httpd_resp_sendstr(req, json_as_string);
   free((void *)json_as_string);
   cJSON_Delete(root);
