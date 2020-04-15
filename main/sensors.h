@@ -2,7 +2,6 @@
 #define SENSORS_H_
 
 #include "driver/adc.h"
-#include "driver/adc_common.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
 

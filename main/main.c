@@ -1,7 +1,6 @@
 #include "app_config.h"
 #include "core.h"
 #include "dht11.h"
-#include "driver/adc_common.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_event.h"
@@ -96,7 +95,7 @@ void app_main(void) {
       .relay_gpio_mapping = relay_pins,
       .config = relay_config,
       .on_hour_start = 8,
-      .on_hour_stop = 21,
+      .on_hour_stop = 22,
       .nvs_handle = app_nvs_handle,
   };
   app_relay_init(&app_relay_configuration);

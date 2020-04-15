@@ -101,9 +101,6 @@ esp_err_t app_httpd_init(const char *resources_path) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.max_open_sockets = 3;
-    config.recv_wait_timeout = 10;
-    config.send_wait_timeout = 10;
 
     ESP_LOGI(REST_TAG, "Starting HTTP Server");
     REST_CHECK(httpd_start(&server, &config) == ESP_OK, "Start server failed", err_start);
